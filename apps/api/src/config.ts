@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { oauthCallbackPath } from "./auth/constants.js";
+import { devAuthEnabled } from "./auth/dev-auth-gate.js";
 
 const hostedIssuer = "https://accounts.vosslabs.org/api/auth";
 const discoverySuffix = "/.well-known/openid-configuration";
@@ -20,6 +21,7 @@ const environmentSchema = z.object({
   VAUTH_CLIENT_ID: z.string().min(1).optional(),
   VAUTH_CLIENT_SECRET: z.string().min(1).optional(),
   VAUTH_REDIRECT_URI: z.string().url(),
+  VINVENTORY_DEV_AUTH: z.string().optional(),
 });
 
 export type AppConfig = {
@@ -30,6 +32,7 @@ export type AppConfig = {
   webOrigin: string;
   cookieSecret: string;
   sessionTtlHours: number;
+  devAuth: boolean;
   vAuth: {
     issuer: string;
     discoveryUrl: string;
@@ -37,6 +40,7 @@ export type AppConfig = {
     clientSecret: string;
     redirectUri: string;
     allowInsecureRequests: boolean;
+    credentialsConfigured: boolean;
   };
 };
 
@@ -44,11 +48,19 @@ export function loadConfig(
   environment: NodeJS.ProcessEnv = process.env,
 ): AppConfig {
   const parsed = environmentSchema.parse(environment);
+  // Second lock on development authentication: any value at all is refused in
+  // production, not only the "1" that the gate would accept elsewhere.
+  if (parsed.NODE_ENV === "production" && parsed.VINVENTORY_DEV_AUTH) {
+    throw new Error("VINVENTORY_DEV_AUTH must not be set in production. It bypasses sign-in.");
+  }
+  const devAuth = devAuthEnabled(parsed);
   const alias = (preferred: "VOSS_CLIENT_ID" | "VOSS_CLIENT_SECRET", legacy: "VAUTH_CLIENT_ID" | "VAUTH_CLIENT_SECRET") => {
     if (parsed[preferred] && parsed[legacy] && parsed[preferred] !== parsed[legacy]) {
       throw new Error(`Conflicting ${preferred} and ${legacy}`);
     }
     const value = parsed[preferred] ?? parsed[legacy];
+    // Dev auth lets a contributor run without VAuth credentials; real sign-in is then unavailable.
+    if (!value && devAuth) return "";
     if (!value) throw new Error(`${preferred} is required (${legacy} is also supported)`);
     return value;
   };
@@ -85,6 +97,8 @@ export function loadConfig(
   if (parsed.VAUTH_REDIRECT_URI !== `${webOrigin.origin}${oauthCallbackPath}`) {
     throw new Error(`VAUTH_REDIRECT_URI must exactly match WEB_ORIGIN + ${oauthCallbackPath}`);
   }
+  const clientId = alias("VOSS_CLIENT_ID", "VAUTH_CLIENT_ID");
+  const clientSecret = alias("VOSS_CLIENT_SECRET", "VAUTH_CLIENT_SECRET");
 
   return {
     environment: parsed.NODE_ENV,
@@ -94,14 +108,16 @@ export function loadConfig(
     webOrigin: parsed.WEB_ORIGIN,
     cookieSecret: parsed.COOKIE_SECRET,
     sessionTtlHours: parsed.SESSION_TTL_HOURS,
+    devAuth,
     vAuth: {
       issuer: expectedIssuer,
       discoveryUrl,
-      clientId: alias("VOSS_CLIENT_ID", "VAUTH_CLIENT_ID"),
-      clientSecret: alias("VOSS_CLIENT_SECRET", "VAUTH_CLIENT_SECRET"),
+      clientId,
+      clientSecret,
       redirectUri: parsed.VAUTH_REDIRECT_URI,
       allowInsecureRequests:
         parsed.NODE_ENV !== "production" && issuer.protocol === "http:",
+      credentialsConfigured: clientId !== "" && clientSecret !== "",
     },
   };
 }

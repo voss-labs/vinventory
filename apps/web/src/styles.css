@@ -375,3 +375,8 @@ th{font-family:var(--font-mono);font-size:.75rem}
 @media(prefers-reduced-motion:reduce){button:active:not(:disabled),.button:active{transform:none}
 }
 
+
+.dev-switcher{display:inline-flex;align-items:center;gap:.4rem;padding:.15rem .4rem;border:1px dashed var(--border-hover);border-radius:var(--radius-sm);background:var(--hover-bg)}
+.dev-switcher select{width:auto;max-width:15rem;min-height:30px;padding:.2rem .4rem;font-size:.75rem;text-overflow:ellipsis}
+.dev-badge{padding:.05rem .35rem;border-radius:var(--radius-sm);background:var(--brand);color:var(--bg);font-family:var(--font-mono);font-size:.65rem;font-weight:700;letter-spacing:.06em}
+.dev-switcher-error{color:var(--status-danger);font-size:.7rem}

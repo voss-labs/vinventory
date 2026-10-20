@@ -15,62 +15,22 @@ Lab inventory and borrowing system, rebuilt from the lending-first plan.
 
 - Node.js 22.12 or newer
 - pnpm 11
-- PostgreSQL (Neon for shared environments)
+- Docker (local development) or PostgreSQL (Neon for shared environments)
 
 ## Run locally for testing
 
-The current local `.env` already contains the registered VAuth settings and
-the Neon `neondb` connection. Its initial migration has been applied. Keep this
-file; you do not need to recreate the database or copy the template again.
+No credentials are needed. With Docker, Node.js 22.12+ and pnpm 11 installed:
 
-Open PowerShell in the **inner repository folder** that contains `package.json`:
-
-```powershell
-cd "D:\Web development\LabInventoryTracker\LabInventoryTracker"
+```bash
+pnpm install
+pnpm dev:setup
 pnpm dev
 ```
 
-Keep that terminal running. This starts the Vite frontend on
-`http://localhost:5173`, the API on `http://127.0.0.1:3000`, and the worker
-watcher (currently idle). Stop them with **Ctrl+C**. After editing `.env`, stop
-and restart `pnpm dev` to load the new settings.
-
-To check the app manually:
-
-1. Open [VInventory](http://localhost:5173). This is the public landing page,
-   introducing the product and its audiences.
-2. Select **Sign in with VAuth** and complete the code sent to your college
-   mailbox. Internet access is required for hosted VAuth and Neon; neither
-   service needs to run on your machine.
-3. Sign-in returns to [the labs directory](http://localhost:5173/labs). It
-   lists active labs from the database and supports search by name, code or
-   location. If you already have a session, use **Go to labs** on the landing
-   page; your name/initials and a **Sign out** button appear in the header.
-4. To check your identity, open
-   [the current user endpoint](http://localhost:5173/api/me) in the same browser.
-   A successful login returns your local user as JSON. Before login it returns
-   `401` with `authentication_required`.
-5. Use **Sign out** in the header to revoke the local session and return to the
-   landing page. Sign in again and check that the local user ID stays the same.
-
-The current owner account retains the existing `student` default and has no
-lab membership. If no labs have been configured, the directory explicitly says
-**No labs have been added yet**. This is a setup state, not a failed login.
-Unassigned onboarding, first-admin setup and M201 provisioning remain pending.
-Stock imports are now under `/labs/:labId/import`, available from a lab's
-overview only to authorized staff. Browsing the directory does not grant stock
-permissions. No sample labs or synthetic inventory are added to the real database.
-
-The interface uses the supplied VERP design system's semantic blue/neutral
-colors, small corner radii and self-hosted Geist/Geist Mono fonts, with light
-and dark themes. Tracked styles live in `apps/web/src/theme.css` and `styles.css`.
-
-Use `localhost:5173` exactly in the browser, including for `/api/me`. Vite
-proxies `/api` and `/auth` to the API; opening the API's `127.0.0.1` address
-directly does not share the browser's localhost session cookie. If port 5173
-or 3000 is already in use, stop the earlier development server before retrying;
-keep the registered browser port unchanged. If the API or VAuth cannot be reached,
-the page shows a connection error and retry action instead of a silent sign-in.
+Then open `http://localhost:5173` exactly and choose someone from **Development
+sign-in** in the header. See [`CONTRIBUTING.md`](./CONTRIBUTING.md) and
+[`docs/local-development.md`](./docs/local-development.md) for the details,
+including how to use real VAuth and the Neon database instead.
 
 ## Automated checks
 

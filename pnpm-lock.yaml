@@ -23,6 +23,9 @@ importers:
 
   .:
     devDependencies:
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -156,6 +159,9 @@ importers:
         specifier: 8.23.0
         version: 8.23.0
     devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.9
+        version: 0.5.9
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.5
@@ -165,6 +171,9 @@ importers:
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
+      tsx:
+        specifier: 'catalog:'
+        version: 4.23.15
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

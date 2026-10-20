@@ -1,0 +1,25 @@
+# The local database. Nothing else runs in a container: the app runs on the
+# host with `pnpm dev`, where hot reload and the debugger work without bind mounts.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vinventory-postgres
+    environment:
+      POSTGRES_USER: vinventory
+      POSTGRES_PASSWORD: vinventory
+      POSTGRES_DB: vinventory_dev
+    ports:
+      # 5433 on the host: 5432 is often taken by a Postgres already installed.
+      # Bound to loopback only because the password is well-known.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - vinventory-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # dev:setup waits for this before migrating.
+      test: ["CMD-SHELL", "pg_isready -U vinventory -d vinventory_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  vinventory-pgdata:

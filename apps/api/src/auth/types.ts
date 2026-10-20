@@ -59,3 +59,8 @@ export interface AuthRepository {
     permission: LabPermission,
   ): Promise<boolean>;
 }
+
+export interface DevAuthRepository {
+  /** Active seeded user with auth_provider 'dev' and this email, or null. */
+  findDevUser(email: string): Promise<CurrentUser | null>;
+}

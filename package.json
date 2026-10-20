@@ -2,6 +2,7 @@
   "name": "vinventory",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@11.24.0",
   "engines": {
     "node": ">=22.12.0"
@@ -11,9 +12,14 @@
     "dev": "pnpm --parallel --filter @vinventory/api --filter @vinventory/web --filter @vinventory/worker run dev",
     "test": "pnpm --recursive --if-present run test",
     "typecheck": "pnpm --recursive --if-present run typecheck",
-    "verify": "pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
+    "dev:setup": "tsx scripts/dev-setup.ts setup",
+    "dev:seed": "tsx scripts/dev-setup.ts seed",
+    "dev:down": "tsx scripts/dev-setup.ts down",
+    "dev:reset": "tsx scripts/dev-setup.ts reset"
   },
   "devDependencies": {
+    "tsx": "catalog:",
     "typescript": "7.0.2"
   }
 }

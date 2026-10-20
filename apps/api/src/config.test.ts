@@ -106,3 +106,29 @@ describe("configuration", () => {
     }).vAuth.allowInsecureRequests).toBe(false);
   });
 });
+
+describe("development authentication flag", () => {
+  const { VAUTH_CLIENT_ID, VAUTH_CLIENT_SECRET, ...withoutCredentials } = validEnvironment;
+  const development = { ...withoutCredentials, NODE_ENV: "development" };
+
+  it.each(["1", "yes"])("refuses to start in production with VINVENTORY_DEV_AUTH=%j", (flag) => {
+    expect(() => loadConfig({ ...validEnvironment, NODE_ENV: "production", VINVENTORY_DEV_AUTH: flag }))
+      .toThrow("VINVENTORY_DEV_AUTH must not be set in production. It bypasses sign-in.");
+  });
+
+  it("loads without client credentials when dev auth is on", () => {
+    const config = loadConfig({ ...development, VINVENTORY_DEV_AUTH: "1" });
+    expect(config.devAuth).toBe(true);
+    expect(config.vAuth.credentialsConfigured).toBe(false);
+  });
+
+  it("still requires client credentials when dev auth is off", () => {
+    expect(() => loadConfig(development)).toThrow("VOSS_CLIENT_ID is required (VAUTH_CLIENT_ID is also supported)");
+  });
+
+  it("reports credentials as configured when dev auth is on and they are present", () => {
+    const config = loadConfig({ ...validEnvironment, NODE_ENV: "development", VINVENTORY_DEV_AUTH: "1" });
+    expect(config.devAuth).toBe(true);
+    expect(config.vAuth.credentialsConfigured).toBe(true);
+  });
+});

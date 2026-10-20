@@ -1,0 +1,69 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6        # reads packageManager from package.json
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - name: Production bundle contains no dev auth
+        run: "! grep -r 'auth/dev' apps/web/dist"
+      - name: Production build refuses the dev flag
+        run: |
+          if VINVENTORY_DEV_AUTH=1 pnpm --filter @vinventory/web build; then
+            echo "Build succeeded with VINVENTORY_DEV_AUTH set; it must fail." && exit 1
+          fi
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Setup from nothing (no VAuth credentials anywhere)
+        run: pnpm dev:setup
+      - name: Start API
+        run: |
+          pnpm --filter @vinventory/api dev > api.log 2>&1 &
+          for i in $(seq 60); do curl -sf http://127.0.0.1:3000/health && exit 0; sleep 1; done
+          cat api.log && exit 1
+      - name: Dev login uses real RBAC
+        run: |
+          curl -sf -c jar -H 'content-type: application/json' \
+            -d '{"persona":"incharge-vlsi"}' http://127.0.0.1:3000/auth/dev/login
+          curl -sf -b jar http://127.0.0.1:3000/api/me
+          # DEV-VLSI (a1000000-...-0001): the incharge manages it
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b jar \
+            http://127.0.0.1:3000/api/labs/a1000000-0000-4000-8000-000000000001/import-policies)" = 200
+          # DEV-EMB (a1000000-...-0002): a different lab, so the same user is denied
+          test "$(curl -s -o /dev/null -w '%{http_code}' -b jar \
+            http://127.0.0.1:3000/api/labs/a1000000-0000-4000-8000-000000000002/import-policies)" = 403
+      - name: Commands are repeatable
+        run: |
+          count() { docker compose exec -T postgres psql -U vinventory -d vinventory_dev -tAc "select count(*) from $1"; }
+          # Expected row counts from the spec, section A6.
+          check() {
+            for expected in users:7 labs:3 lab_memberships:4 stock_policies:3 lab_stock:7 \
+              physical_units:5 component_models:7 quantity_balances:4 inventory_movements:9 audit_events:7; do
+              table="${expected%%:*}"
+              want="${expected##*:}"
+              got="$(count "$table")"
+              if [ "$got" != "$want" ]; then
+                echo "$1: $table has $got rows, expected $want" && exit 1
+              fi
+            done
+            echo "$1: all ten seed counts match"
+          }
+          pnpm dev:seed && check "after dev:seed"
+          pnpm dev:reset && check "after dev:reset"
+          pnpm dev:down

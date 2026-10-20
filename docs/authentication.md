@@ -85,6 +85,8 @@ email code is expected.
 | `GET /api/me` | Demonstrate authenticated local identity |
 | `GET /api/labs` | List active labs and the current user's stock-management flag; authenticated directory metadata only |
 | `GET /api/labs/:labId/issue-access` | Demonstrate server-side lab permission enforcement |
+| `GET /auth/dev/personas` | List the active seeded test users for Development sign-in; development only |
+| `POST /auth/dev/login` | Sign in as a seeded test user with `{ persona }`; development only |
 
 ## Registered deployment targets
 
@@ -170,6 +172,32 @@ lab permissions still come from the application database. Never use another
 person's account or shared client credentials. Keep synthetic records in an
 isolated development/test database. Mock identity tests do not prove hosted login.
 
+## Development authentication
+
+For local work without VAuth credentials, `VINVENTORY_DEV_AUTH=1` lets a
+contributor sign in as a seeded test user from **Development sign-in** in the
+header. See [local development](./local-development.md) for the test users. It
+replaces only the sign-in step: it creates the same hashed `user_sessions` row
+and signed cookie as the VAuth callback, and roles, memberships and permissions
+are still read from the database.
+
+Four locks keep it out of production:
+
+1. **Runtime gate.** It is enabled only when `NODE_ENV` is not `production` and
+   `VINVENTORY_DEV_AUTH` is exactly `1`.
+2. **Config refusal.** The API refuses to start with `NODE_ENV=production` and any
+   non-empty `VINVENTORY_DEV_AUTH`.
+3. **Build lock and bundle exclusion.** `vite build` fails if `VINVENTORY_DEV_AUTH`
+   or `VITE_DEV_AUTH` is set in the build environment, and the control is behind
+   `import.meta.env.DEV`, so none of its code is in the production bundle. The
+   lock reads the build process's environment, not `.env`, because every local
+   `.env` enables dev sign-in and `pnpm verify` must still build.
+4. **Routes not registered.** `/auth/dev/personas` and `/auth/dev/login` exist
+   only when the gate passed at startup; otherwise they return 404.
+
+The `unassigned` test user uses today's `student` default until the `unassigned`
+account type exists.
+
 ## Acceptance checklist
 
 - [x] Registration details and integration guide received from the owner.
@@ -185,7 +213,7 @@ isolated development/test database. Mock identity tests do not prove hosted logi
 - [x] Local sign-out revokes the session and returns to the public landing page; repeat hosted SSO reaches `/labs`.
 - [ ] Complete inactive-user and all role-boundary acceptance checks before the pilot.
 - [ ] Incharge/staff access is limited to granted labs; system-admin global access is deliberate.
-- [ ] Development switcher and synthetic fixtures cannot be enabled in production.
+- [x] Development switcher and synthetic fixtures cannot be enabled in production.
 - [ ] Production callback, HTTPS cookies and deployed environment are checked before release.
 
 Evidence: use automated boundary/permission tests plus a real browser hosted-login

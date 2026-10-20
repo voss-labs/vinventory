@@ -2,7 +2,7 @@ import cookie from "@fastify/cookie";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 import { hashIp, hashToken, randomToken } from "./crypto.js";
-import { oauthCallbackPath } from "./constants.js";
+import { oauthCallbackPath, sessionCookieName as sessionCookie } from "./constants.js";
 import type {
   AuthRepository,
   CurrentUser,
@@ -19,7 +19,6 @@ declare module "fastify" {
 }
 
 const loginCookie = "vinventory_oidc";
-const sessionCookie = "vinventory_session";
 const loginMaxAgeSeconds = 10 * 60;
 
 type AuthPluginOptions = {

@@ -8,6 +8,11 @@
       "types": "./src/index.ts",
       "development": "./src/index.ts",
       "default": "./dist/src/index.js"
+    },
+    "./dev": {
+      "types": "./src/dev/index.ts",
+      "development": "./src/dev/index.ts",
+      "default": "./dist/src/dev/index.js"
     }
   },
   "scripts": {
@@ -15,16 +20,19 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "vitest run --passWithNoTests",
     "db:generate": "node --import ../../scripts/load-env.mjs ./node_modules/drizzle-kit/bin.cjs generate",
-    "db:migrate": "node --import ../../scripts/load-env.mjs ./node_modules/drizzle-kit/bin.cjs migrate"
+    "db:migrate": "node --import ../../scripts/load-env.mjs ./node_modules/drizzle-kit/bin.cjs migrate",
+    "db:seed": "node --import ../../scripts/load-env.mjs --import tsx src/dev/seed-cli.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
     "pg": "8.23.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "@types/node": "catalog:",
     "@types/pg": "8.23.1",
     "drizzle-kit": "0.31.11",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
